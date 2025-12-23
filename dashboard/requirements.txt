@@ -1,0 +1,11 @@
+# Streamlit
+streamlit==1.30.0
+
+# HTTP Requests
+requests==2.31.0
+
+# Data Processing
+pandas==2.1.4
+
+# Utilities
+python-dotenv==1.0.0
