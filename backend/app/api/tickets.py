@@ -27,6 +27,54 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/tickets", tags=["tickets"])
 
 
+@router.post("", response_model=TicketResponse)
+async def create_manual_ticket(
+    ticket_data: TicketCreate,
+    db: Session = Depends(get_db)
+):
+    """
+    Manually create and process a ticket (useful for testing).
+    """
+    ticket = Ticket(
+        source=ticket_data.source,
+        customer_email=ticket_data.customer_email,
+        subject=ticket_data.subject,
+        body=ticket_data.body,
+        status=TicketStatus.PENDING_REVIEW
+    )
+    
+    # Process with AI
+    try:
+        classification = classifier_service.classify_ticket(
+            ticket_data.subject,
+            ticket_data.body
+        )
+        ticket.intent = classification.intent
+        ticket.urgency = classification.urgency
+        ticket.confidence_score = classification.confidence
+        
+        reply_result = reply_generator_service.generate_reply(
+            ticket_data.subject,
+            ticket_data.body,
+            classification.intent.value,
+            classification.urgency.value
+        )
+        ticket.ai_reply = reply_result.reply
+        
+        ticket.assigned_team = router_service.route_ticket(
+            classification.intent,
+            classification.urgency
+        )
+    except Exception as e:
+        logger.error(f"Manual processing failed: {e}")
+        ticket.status = TicketStatus.ESCALATED
+    
+    db.add(ticket)
+    db.commit()
+    db.refresh(ticket)
+    return ticket
+
+
 @router.post("/ingest", response_model=dict)
 async def ingest_tickets(db: Session = Depends(get_db)):
     """

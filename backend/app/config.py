@@ -11,7 +11,7 @@ class Settings(BaseSettings):
     # LLM Provider
     llm_provider: Literal["groq"] = "groq"
     groq_api_key: str
-    groq_model: str = "llama-3.1-70b-versatile"
+    groq_model: str = "llama-3.1-8b-instant"
     
     # Gmail API
     gmail_credentials_file: str = "credentials.json"
